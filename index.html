@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Boss Battle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .player-count {
+            font-size: 1.2em;
+            color: #4ecdc4;
+            margin-bottom: 5px;
+        }
+
+        .your-id {
+            font-size: 0.9em;
+            color: #a8dadc;
+            opacity: 0.8;
+        }
+
+        .boss-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid rgba(255, 107, 107, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        .boss-name {
+            text-align: center;
+            font-size: 1.3em;
+            color: #ff6b6b;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+        }
+
+        .boss-sprite {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4em;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .boss-sprite.hit {
+            animation: shake 0.3s, float 3s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .health-bar-container {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .health-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.85em;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b 0%, #ee5a6f 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        .attack-timer {
+            text-align: center;
+            font-size: 1em;
+            color: #4ecdc4;
+            margin-bottom: 0;
+        }
+
+
+
+        .damage-number {
+            position: absolute;
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 1);
+            animation: damage-float 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes damage-float {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(1.5);
+            }
+        }
+
+        .victory-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid #4ecdc4;
+            text-align: center;
+            z-index: 1000;
+            animation: victory-appear 0.5s ease-out;
+        }
+
+        @keyframes victory-appear {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .victory-message h2 {
+            font-size: 3em;
+            color: #4ecdc4;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(78, 205, 196, 0.8);
+        }
+
+        .victory-message p {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="player-count">Players Online: <span id="playerCount">1</span></div>
+            <div class="your-id">Your ID: <span id="yourId"></span></div>
+        </div>
+
+        <div class="boss-container">
+            <div class="boss-name" id="bossName">Ancient Dragon</div>
+            <div class="boss-sprite" id="bossSprite">🐉</div>
+            
+            <div class="health-bar-container">
+                <div class="health-label">
+                    <span>HP</span>
+                    <span id="healthText">10000 / 10000</span>
+                </div>
+                <div class="health-bar">
+                    <div class="health-fill" id="healthFill" style="width: 100%;">100%</div>
+                </div>
+            </div>
+
+            <div class="attack-timer" id="attackTimer">Next attack in: 3s</div>
+        </div>
+    </div>
+
+    <script>
+        const BOSS_MAX_HP = 10000;
+        const ATTACK_INTERVAL = 3000;
+        const DAMAGE_PER_PLAYER = 1;
+        const PLAYER_TIMEOUT = 10000; // Remove players inactive for 10 seconds
+
+        let gameState = {
+            bossHp: BOSS_MAX_HP,
+            players: {},
+            lastAttack: Date.now(),
+            defeated: false
+        };
+
+        let playerId = null;
+        let nextAttackTime = Date.now() + ATTACK_INTERVAL;
+        let lastHeartbeat = Date.now();
+
+        async function initGame() {
+            playerId = generatePlayerId();
+            document.getElementById('yourId').textContent = playerId;
+
+            try {
+                const stored = await window.storage.get('game-state', true);
+                if (stored && stored.value) {
+                    gameState = JSON.parse(stored.value);
+                    
+                    if (gameState.defeated || gameState.bossHp <= 0) {
+                        resetGame();
+                    }
+                }
+            } catch (error) {
+                console.log('No existing game state, starting fresh');
+            }
+
+            gameState.players[playerId] = {
+                id: playerId,
+                joined: Date.now(),
+                lastSeen: Date.now()
+            };
+
+            await saveGameState();
+            updateUI();
+            startGameLoop();
+        }
+
+        function generatePlayerId() {
+            return 'Player_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        async function saveGameState() {
+            try {
+                await window.storage.set('game-state', JSON.stringify(gameState), true);
+            } catch (error) {
+                console.error('Error saving game state:', error);
+            }
+        }
+
+        async function loadGameState() {
+            try {
+                const stored = await window.storage.get('game-state', true);
+                if (stored && stored.value) {
+                    const loaded = JSON.parse(stored.value);
+                    
+                    gameState.bossHp = loaded.bossHp;
+                    gameState.defeated = loaded.defeated;
+                    gameState.lastAttack = loaded.lastAttack;
+                    
+                    // Clean up inactive players and merge active ones
+                    const now = Date.now();
+                    gameState.players = {};
+                    
+                    for (let pid in loaded.players) {
+                        const player = loaded.players[pid];
+                        if (now - player.lastSeen < PLAYER_TIMEOUT || pid === playerId) {
+                            gameState.players[pid] = player;
+                        }
+                    }
+                    
+                    // Always ensure current player is in the list
+                    if (!gameState.players[playerId]) {
+                        gameState.players[playerId] = {
+                            id: playerId,
+                            joined: Date.now(),
+                            lastSeen: Date.now()
+                        };
+                    }
+                }
+            } catch (error) {
+                console.log('Error loading game state:', error);
+            }
+        }
+        
+        async function sendHeartbeat() {
+            try {
+                await loadGameState();
+                gameState.players[playerId].lastSeen = Date.now();
+                await saveGameState();
+            } catch (error) {
+                console.error('Error sending heartbeat:', error);
+            }
+        }
+
+        function startGameLoop() {
+            // Main game loop - load state and check for attacks
+            setInterval(async () => {
+                await loadGameState();
+                updateUI();
+                
+                const now = Date.now();
+                const timeSinceLastAttack = now - gameState.lastAttack;
+                
+                if (timeSinceLastAttack >= ATTACK_INTERVAL && !gameState.defeated) {
+                    await performAttack();
+                }
+            }, 100);
+
+            // Update timer display
+            setInterval(updateTimer, 100);
+            
+            // Send heartbeat every 2 seconds to show we're still active
+            setInterval(sendHeartbeat, 2000);
+        }
+
+        async function performAttack() {
+            // Reload state first to get accurate player count
+            await loadGameState();
+            
+            const playerCount = Object.keys(gameState.players).length;
+            const totalDamage = playerCount * DAMAGE_PER_PLAYER;
+            
+            gameState.bossHp = Math.max(0, gameState.bossHp - totalDamage);
+            gameState.lastAttack = Date.now();
+            nextAttackTime = Date.now() + ATTACK_INTERVAL;
+
+            showDamage(totalDamage);
+            animateBossHit();
+
+            if (gameState.bossHp <= 0 && !gameState.defeated) {
+                gameState.defeated = true;
+                showVictory();
+            }
+
+            await saveGameState();
+            updateUI();
+        }
+
+        function updateTimer() {
+            const now = Date.now();
+            const timeUntilAttack = Math.max(0, nextAttackTime - now);
+            const seconds = (timeUntilAttack / 1000).toFixed(1);
+            document.getElementById('attackTimer').textContent = 
+                gameState.defeated ? 'Boss Defeated!' : `Next attack in: ${seconds}s`;
+        }
+
+        function updateUI() {
+            const healthPercent = (gameState.bossHp / BOSS_MAX_HP) * 100;
+            document.getElementById('healthFill').style.width = healthPercent + '%';
+            document.getElementById('healthFill').textContent = Math.round(healthPercent) + '%';
+            document.getElementById('healthText').textContent = 
+                `${gameState.bossHp} / ${BOSS_MAX_HP}`;
+
+            const playerCount = Object.keys(gameState.players).length;
+            document.getElementById('playerCount').textContent = playerCount;
+        }
+
+        function showDamage(damage) {
+            const bossSprite = document.getElementById('bossSprite');
+            const rect = bossSprite.getBoundingClientRect();
+            
+            const damageEl = document.createElement('div');
+            damageEl.className = 'damage-number';
+            damageEl.textContent = `-${damage}`;
+            damageEl.style.left = (rect.left + rect.width / 2) + 'px';
+            damageEl.style.top = rect.top + 'px';
+            
+            document.body.appendChild(damageEl);
+            
+            setTimeout(() => damageEl.remove(), 1000);
+        }
+
+        function animateBossHit() {
+            const bossSprite = document.getElementById('bossSprite');
+            bossSprite.classList.add('hit');
+            setTimeout(() => bossSprite.classList.remove('hit'), 300);
+        }
+
+        function showVictory() {
+            const victory = document.createElement('div');
+            victory.className = 'victory-message';
+            victory.innerHTML = `
+                <h2>🎉 VICTORY! 🎉</h2>
+                <p>The Ancient Dragon has been defeated!</p>
+                <p>Warriors: ${Object.keys(gameState.players).length}</p>
+            `;
+            document.body.appendChild(victory);
+
+            setTimeout(async () => {
+                victory.remove();
+                await resetGame();
+            }, 5000);
+        }
+
+        async function resetGame() {
+            gameState = {
+                bossHp: BOSS_MAX_HP,
+                players: {},
+                lastAttack: Date.now(),
+                defeated: false
+            };
+            
+            gameState.players[playerId] = {
+                id: playerId,
+                joined: Date.now(),
+                lastSeen: Date.now()
+            };
+
+            nextAttackTime = Date.now() + ATTACK_INTERVAL;
+            await saveGameState();
+            updateUI();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
